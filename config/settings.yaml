@@ -1,0 +1,33 @@
+# cost map parameters
+resolution_size: 0.02 # default: 0.02
+map_width: 6.0 # default: 6.0
+map_height: 5.0 # default: 5.0 
+
+# lidar parameters
+lidar_topic: "/scan"
+
+# camera parameters  
+camera_name: "/d400"
+camera_frame: "d400_depth"
+depth_topic: "/d400/aligned_depth_to_color/image_raw"
+camera_info_topic: "/d400/aligned_depth_to_color/camera_info" 
+image_height: 480
+image_width: 848
+fx: 611.4509887695312
+fy: 611.4857177734375
+cx: 433.2039794921875
+cy: 249.4730224609375
+
+# /base_link to /d400_depth
+Translation: [0.227, -0.066, 0.916]                  
+Rotation: [-0.495, 0.500, -0.498, 0.507]
+
+# /base_link to /lidar
+Translation: [0.144, -0.096, 0.998]
+Rotation: [0.008, 0.018, 0.001, 1.000]
+
+
+# Other parameters
+display_costmap: true # default: true 
+
+

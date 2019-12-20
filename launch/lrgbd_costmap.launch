@@ -1,0 +1,15 @@
+<launch>
+  
+<!--  strt lidar rgbd camera process-->
+  <arg name="node_namespace" default="lrgbd_costmap_node" />
+ 
+
+  <!-- Set parameters -->
+  <rosparam command="load" file="$(find costmap_lrgbd_ros)/config/settings.yaml" ns="$(arg node_namespace)" />
+  
+  <node pkg="costmap_lrgbd_ros" type="lrgbd_costmap_node" name="$(arg node_namespace)" clear_params="true" output="screen" >
+
+  </node>
+</launch>
+
+
