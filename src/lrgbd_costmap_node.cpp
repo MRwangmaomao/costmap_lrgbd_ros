@@ -12,13 +12,16 @@
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/image_encodings.h> 
 #include <tf/transform_broadcaster.h> 
 #include <geometry_msgs/Pose.h>
-
+#include <sensor_msgs/PointCloud.h>
 #include "costmap_lrgbd_ros/lrgbd2xz.h"
 
-std::queue<cv::Mat> img_buf;
+#define RAD2DEG(x) ((x)*180./M_PI) 
+
+LRGBDCostMap lrgbd_tmap;
 
 template<typename T>
 T getOption(ros::NodeHandle& pnh,
@@ -35,7 +38,8 @@ void img_callback(const sensor_msgs::ImageConstPtr &depth)
     try
     {
         cv_bridge::CvImagePtr cv_image = cv_bridge::toCvCopy(depth);
-        ROS_INFO_STREAM("\nI get image");
+        lrgbd_tmap.depthCameraToCostMap(cv_image->image);
+
     }
     catch (cv_bridge::Exception& e)
     {
@@ -44,7 +48,16 @@ void img_callback(const sensor_msgs::ImageConstPtr &depth)
     } 
 } 
 
-
+void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& scan){
+    int count = scan->scan_time / scan->time_increment;
+    // ROS_INFO("I heard a laser scan %s[%d]:", scan->header.frame_id.c_str(), count);
+    // ROS_INFO("angle_range, %f, %f", RAD2DEG(scan->angle_min), RAD2DEG(scan->angle_max));
+    
+    for(int i = 0; i < count; i++) {
+        float degree = RAD2DEG(scan->angle_min + scan->angle_increment * i);
+        // ROS_INFO(": [%f, %f]", degree, scan->ranges[i]);
+    }
+}
 
 int main(int argc, char **argv){
     ros::init(argc, argv, "lrgbd_costmap");
@@ -61,17 +74,28 @@ int main(int argc, char **argv){
     double cy = getOption<double>(pnh, "cy", 0.0); 
     Eigen::Matrix3d camera_K;
     camera_K << fx, 0, cx, 0, fy, cy, 0, 0, 1;
-
+    int depthScale = getOption<int>(pnh, "depthScale", 1000);
     double resolution_size = getOption<double>(pnh, "resolution_size", 0.0);
     double map_width = getOption<double>(pnh, "map_width", 0.0);
     double map_height = getOption<double>(pnh, "map_height", 0.0);
     bool display_costmap = getOption<bool>(pnh, "display_costmap", true);
+    
+    std::string config_file = getOption<std::string>(pnh, "config_file", "");
+    cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
+    cv::Mat T_lidar2base, Tdepth2base;
+    fsSettings["DEPTH_BASE"] >> Tdepth2base;
+    fsSettings["LIDAR_BASE"] >> Tdepth2base; 
 
+    lrgbd_tmap.init(camera_K, resolution_size, map_width, map_height, display_costmap, depthScale, Tdepth2base, Tdepth2base);
+    
     std::string depth_topic = getOption<std::string>(pnh, "depth_topic", "");
     std::string lidar_topic = getOption<std::string>(pnh, "lidar_topic", "");
     std::string camera_info = getOption<std::string>(pnh, "camera_info_topic", ""); 
     ros::Subscriber sub_img = nh.subscribe(depth_topic, 100, img_callback);
+    ros::Subscriber sub_laser = nh.subscribe(lidar_topic, 100, lidar_callback);
     
+    
+
     ros::spin(); 
     ROS_INFO("shutting down!");
     ros::shutdown();
