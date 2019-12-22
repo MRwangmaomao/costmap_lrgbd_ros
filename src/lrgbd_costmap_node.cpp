@@ -68,29 +68,36 @@ int main(int argc, char **argv){
     
     // ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
-    double fx = getOption<double>(pnh, "fx", 0.0);
-    double fy = getOption<double>(pnh, "fy", 0.0);
-    double cx = getOption<double>(pnh, "cx", 0.0);
-    double cy = getOption<double>(pnh, "cy", 0.0); 
-    Eigen::Matrix3d camera_K;
-    camera_K << fx, 0, cx, 0, fy, cy, 0, 0, 1;
-    int depthScale = getOption<int>(pnh, "depthScale", 1000);
-    double resolution_size = getOption<double>(pnh, "resolution_size", 0.0);
-    double map_width = getOption<double>(pnh, "map_width", 0.0);
-    double map_height = getOption<double>(pnh, "map_height", 0.0);
-    bool display_costmap = getOption<bool>(pnh, "display_costmap", true);
-    
     std::string config_file = getOption<std::string>(pnh, "config_file", "");
+    ROS_INFO_STREAM(config_file);
     cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
+    
+    double fx = fsSettings["fx"];
+    double fy = fsSettings["fy"];
+    double cx = fsSettings["cx"];
+    double cy = fsSettings["cy"]; 
+    
+    Eigen::Matrix3d camera_K; 
+    camera_K << fx, 0, cx, fy, cy, 0, 0, 0, 1;
+    // ROS_INFO_STREAM(camera_K(0,0) << " " << camera_K(0,2)<< " " << camera_K(1,0) << " " << camera_K(1,1));
+
+    int depthScale = fsSettings["depthScale"];
+    double resolution_size = fsSettings["resolution_size"];
+    double map_width = fsSettings["map_width"];
+    double map_height = fsSettings["map_height"];
+    // bool display_costmap = fsSettings["display_costmap"];
+    bool display_costmap = false;
+    
     cv::Mat T_lidar2base, Tdepth2base;
     fsSettings["DEPTH_BASE"] >> Tdepth2base;
     fsSettings["LIDAR_BASE"] >> Tdepth2base; 
-
+  
     lrgbd_tmap.init(camera_K, resolution_size, map_width, map_height, display_costmap, depthScale, Tdepth2base, Tdepth2base);
     
-    std::string depth_topic = getOption<std::string>(pnh, "depth_topic", "");
-    std::string lidar_topic = getOption<std::string>(pnh, "lidar_topic", "");
-    std::string camera_info = getOption<std::string>(pnh, "camera_info_topic", ""); 
+    std::string depth_topic = fsSettings["depth_topic"];
+    std::string lidar_topic = fsSettings["lidar_topic"];
+    std::string camera_info = fsSettings["camera_info"];
+ 
     ros::Subscriber sub_img = nh.subscribe(depth_topic, 100, img_callback);
     ros::Subscriber sub_laser = nh.subscribe(lidar_topic, 100, lidar_callback);
     

@@ -23,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(Eigen3 REQUIRED)
+# set(OpenCV_DIR "~/code/catkin_ws/other/opencv-3.4.3/build")
 find_package(OpenCV REQUIRED) 
 
 ## Uncomment this if the package has a setup.py. This macro ensures

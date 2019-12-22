@@ -1,11 +1,13 @@
 #include <iostream>
 #include <fstream>
- 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
 
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
+
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
+
 
 
 class LRGBDCostMap{
@@ -23,14 +25,20 @@ public:
 private:
     cv::Mat costmap2d_;
     Eigen::Matrix3d camera_K_;
+    double fx;
+    double fy;
+    double cx;
+    double cy;
     double image_height_;
     double image_width_;
     double resolution_size_;
     double map_width_;
     double map_height_;
+    int map_image_w_;
+    int map_image_h_;
     bool display_costmap_;
     int depthScale_;
-    cv::Mat T_camera2base_;
-    cv::Mat T_laser2base_;
+    Eigen::Matrix<double, 4, 4> T_camera2base_;
+    Eigen::Matrix<double, 4, 4> T_laser2base_;
     cv::Mat T_base2world_;
 };

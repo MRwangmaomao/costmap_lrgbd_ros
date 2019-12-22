@@ -5,10 +5,10 @@
  
 
   <!-- Set parameters -->
-  <rosparam command="load" file="$(find costmap_lrgbd_ros)/config/settings.yaml" ns="$(arg node_namespace)" />
+  <!-- <rosparam command="load" file="$(find costmap_lrgbd_ros)/config/settings.yaml" ns="$(arg node_namespace)" /> -->
   
   <node pkg="costmap_lrgbd_ros" type="lrgbd_costmap_node" name="$(arg node_namespace)" clear_params="true" output="screen" >
-
+    <param name="config_file" type="str" value="/home/wpr/code/catkin_ws/src/costmap_lrgbd_ros/config/settings.yaml" /> 
   </node>
 </launch>
 
