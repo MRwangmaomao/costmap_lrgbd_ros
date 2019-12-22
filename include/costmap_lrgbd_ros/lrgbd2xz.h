@@ -6,31 +6,37 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-
-
+#include<opencv2/core/eigen.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 
 class LRGBDCostMap{
 
 public:
     LRGBDCostMap();
-    void init(Eigen::Matrix3d camera_K, double resolution_size, double map_width, double map_height, bool display_costmap, int depthScale, cv::Mat T_camera2base, cv::Mat T_laser2base);
+    ~LRGBDCostMap(void);
+ 
+    void init(Eigen::Matrix3d camera_K, int image_height, int image_width, double resolution_size, double map_width, double map_height, bool display_costmap, int depthScale, cv::Mat T_camera2base, cv::Mat T_laser2base);
     void laserToCostMap(void);
     void depthCameraToCostMap(cv::Mat depth_image);
     void obstacleMap(void);
     void inflationHighResolution(void);
-    ~LRGBDCostMap(void);
+    void drawCross(void);
+    void drawRGBDBounds(void);
+    void drawFreeArea(void);
 
 
 private:
     cv::Mat costmap2d_;
     Eigen::Matrix3d camera_K_;
-    double fx;
-    double fy;
-    double cx;
-    double cy;
-    double image_height_;
-    double image_width_;
+    double fx_;
+    double fy_;
+    double cx_;
+    double cy_;
+    int band_width_;
+    int image_height_;
+    int image_width_;
     double resolution_size_;
     double map_width_;
     double map_height_;

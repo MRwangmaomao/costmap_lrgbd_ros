@@ -80,6 +80,8 @@ int main(int argc, char **argv){
     Eigen::Matrix3d camera_K; 
     camera_K << fx, 0, cx, fy, cy, 0, 0, 0, 1;
     // ROS_INFO_STREAM(camera_K(0,0) << " " << camera_K(0,2)<< " " << camera_K(1,0) << " " << camera_K(1,1));
+    int image_height = fsSettings["image_height"];
+    int image_width = fsSettings["image_width"]; 
 
     int depthScale = fsSettings["depthScale"];
     double resolution_size = fsSettings["resolution_size"];
@@ -91,8 +93,8 @@ int main(int argc, char **argv){
     cv::Mat T_lidar2base, Tdepth2base;
     fsSettings["DEPTH_BASE"] >> Tdepth2base;
     fsSettings["LIDAR_BASE"] >> Tdepth2base; 
-  
-    lrgbd_tmap.init(camera_K, resolution_size, map_width, map_height, display_costmap, depthScale, Tdepth2base, Tdepth2base);
+ 
+    lrgbd_tmap.init(camera_K, image_height, image_width, resolution_size, map_width, map_height, display_costmap, depthScale, Tdepth2base, Tdepth2base);
     
     std::string depth_topic = fsSettings["depth_topic"];
     std::string lidar_topic = fsSettings["lidar_topic"];
