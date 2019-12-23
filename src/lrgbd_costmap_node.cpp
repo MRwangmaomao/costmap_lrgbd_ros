@@ -18,10 +18,12 @@
 #include <geometry_msgs/Pose.h>
 #include <sensor_msgs/PointCloud.h>
 #include "costmap_lrgbd_ros/lrgbd2xz.h"
+#include "costmap_lrgbd_ros/dwa_planning.h"
 
 #define RAD2DEG(x) ((x)*180./M_PI) 
 
 LRGBDCostMap lrgbd_tmap;
+DWAPlanning dwa_planer;
 
 template<typename T>
 T getOption(ros::NodeHandle& pnh,
@@ -32,7 +34,8 @@ T getOption(ros::NodeHandle& pnh,
   return param_val;
 }
 
- 
+
+
 void img_callback(const sensor_msgs::ImageConstPtr &depth)
 {  
     try
@@ -64,25 +67,34 @@ int main(int argc, char **argv){
     ros::start();
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
-    ROS_INFO_STREAM("\n-------------------------- start --------------------------\n");
+    std::cout << "\n-------------------------- start --------------------------\n" << std::endl;
     
     // ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
-    std::string config_file = getOption<std::string>(pnh, "config_file", "");
-    ROS_INFO_STREAM(config_file);
-    cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
+    std::string config_file;
+    std::string dwa_file;
+    if(argc >=2){
+        config_file = argv[1];
+        dwa_file = argv[2];
+    }
+    else{
+        std::cout<<"args too small.\n";
+        exit(0);
+    } 
     
+    ROS_INFO_STREAM("Setting file path is: " << config_file);
+    cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
+     
     double fx = fsSettings["fx"];
     double fy = fsSettings["fy"];
     double cx = fsSettings["cx"];
     double cy = fsSettings["cy"]; 
     
     Eigen::Matrix3d camera_K; 
-    camera_K << fx, 0, cx, fy, cy, 0, 0, 0, 1;
-    // ROS_INFO_STREAM(camera_K(0,0) << " " << camera_K(0,2)<< " " << camera_K(1,0) << " " << camera_K(1,1));
+    camera_K << fx, 0, cx, fy, cy, 0, 0, 0, 1; 
     int image_height = fsSettings["image_height"];
     int image_width = fsSettings["image_width"]; 
-
+    fsSettings["dwa_file"] >> dwa_file;
     int depthScale = fsSettings["depthScale"];
     double resolution_size = fsSettings["resolution_size"];
     double map_width = fsSettings["map_width"];
@@ -96,16 +108,15 @@ int main(int argc, char **argv){
     fsSettings["LIDAR_BASE"] >> Tdepth2base; 
  
     lrgbd_tmap.init(camera_K, image_height, image_width, resolution_size, map_width, map_height, display_costmap, depthScale, Tdepth2base, Tdepth2base, robot_radius);
-    
+    dwa_planer.init(dwa_file);
+
     std::string depth_topic = fsSettings["depth_topic"];
     std::string lidar_topic = fsSettings["lidar_topic"];
     std::string camera_info = fsSettings["camera_info"];
  
     ros::Subscriber sub_img = nh.subscribe(depth_topic, 100, img_callback);
     ros::Subscriber sub_laser = nh.subscribe(lidar_topic, 100, lidar_callback);
-    
-    
-
+      
     ros::spin(); 
     ROS_INFO("shutting down!");
     ros::shutdown();

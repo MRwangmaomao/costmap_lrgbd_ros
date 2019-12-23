@@ -5,6 +5,10 @@ project(costmap_lrgbd_ros)
 add_compile_options(-std=c++11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -funsafe-loop-optimizations -fsee -funroll-loops -fno-math-errno -funsafe-math-optimizations -ffinite-math-only -fno-signed-zeros ")
 
+# SET(CMAKE_BUILD_TYPE "Debug")
+# SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
+# SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall") 
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -16,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   tf
+  tf2
   geometry_msgs
   image_geometry
 )
@@ -132,9 +137,12 @@ include_directories(
 )
 
 
-add_executable(lrgbd_costmap_node src/lrgbd_costmap_node.cpp src/lrgbd2xz.cpp ) 
+add_executable(lrgbd_costmap_node src/lrgbd_costmap_node.cpp src/lrgbd2xz.cpp src/dwa_planning.cpp) 
 target_link_libraries(lrgbd_costmap_node  ${catkin_LIBRARIES})
 
+
+add_executable(record_path_node src/record_path_node.cpp) 
+target_link_libraries(record_path_node  ${catkin_LIBRARIES})
 
 #############
 ## Install ##

@@ -48,4 +48,4 @@ robot_radius: 0.4
 # Other parameters
 display_costmap: true # default: true 
 
-
+dwa_file: /home/wpr/code/catkin_ws/src/costmap_lrgbd_ros/config/planning.yaml
