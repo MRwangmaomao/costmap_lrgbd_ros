@@ -10,7 +10,7 @@ LRGBDCostMap::~LRGBDCostMap(void){
 
 }
  
-void LRGBDCostMap::init(Eigen::Matrix3d camera_K, int image_height, int image_width, double resolution_size, double map_width, double map_height, bool display_costmap, int depthScale, cv::Mat T_camera2base, cv::Mat T_laser2base){
+void LRGBDCostMap::init(Eigen::Matrix3d camera_K, int image_height, int image_width, double resolution_size, double map_width, double map_height, bool display_costmap, int depthScale, cv::Mat T_camera2base, cv::Mat T_laser2base, double robot_radius){
     resolution_size_ = resolution_size;
     // image_height_ = image_height;
     // image_width_ = image_width;
@@ -18,7 +18,7 @@ void LRGBDCostMap::init(Eigen::Matrix3d camera_K, int image_height, int image_wi
     map_height_ = map_height;
     display_costmap_ = display_costmap;
     depthScale_ = depthScale;
-    
+    robot_radius_ = robot_radius;
     cv::cv2eigen(T_camera2base,T_camera2base_);
     cv::cv2eigen(T_laser2base,T_laser2base_);
     map_image_w_ = int(map_width_/resolution_size_);
@@ -59,20 +59,18 @@ void LRGBDCostMap::depthCameraToCostMap(cv::Mat depth_image){
             costmap2d_.data[ (uint)(pointWorld[0]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uint)(pointWorld[2]/resolution_size_  + map_image_w_/2)*costmap2d_.channels() ] = 0;
             costmap2d_.data[ (uint)(pointWorld[0]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uint)(pointWorld[2]/resolution_size_  + map_image_w_/2)*costmap2d_.channels()+1 ] = 255;
             costmap2d_.data[ (uint)(pointWorld[0]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uint)(pointWorld[2]/resolution_size_ + map_image_w_/2)*costmap2d_.channels()+2 ] = 0;
-            // std::cout << pointWorld[0]/resolution_size_ << std::endl;
-
-                // costmap2d_.data[ (uchar)(pointWorld[0]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uchar)(pointWorld[2]/resolution_size_ + map_image_w_/2)*depth_image.channels() ] = 255;
-                // costmap2d_.data[ (uchar)(pointWorld[0]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uchar)(pointWorld[2]/resolution_size_ + map_image_w_/2)*depth_image.channels()+1 ] = 255;
-                // costmap2d_.data[ (uchar)(pointWorld[0]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uchar)(pointWorld[2]/resolution_size_ + map_image_w_/2)*depth_image.channels()+2 ] = 255;
             }
         }
     }
     drawFreeArea(); // 可通行区域
+    inflationHighResolution(); // 膨胀处理
     
     cv::namedWindow("1");
     cv::imshow("1",costmap2d_);
     cvWaitKey(1);
-
+    cv::namedWindow("2");
+    cv::imshow("2",config_map_);
+    cvWaitKey(1);
     for ( int v=0; v<costmap2d_.rows; v++ ){
         for ( int u=0; u<costmap2d_.cols; u++ )
         {
@@ -91,7 +89,63 @@ void LRGBDCostMap::obstacleMap(void){
 }
 
 void LRGBDCostMap::inflationHighResolution(void){
-    
+    if(band_width_ < 0){
+        band_width_ = -band_width_;
+    }
+    int min_h = map_image_h_/2-band_width_;
+    int max_h = map_image_h_/2+band_width_;
+    inflation_map_ = costmap2d_.clone();
+    config_map_ = costmap2d_.clone();
+    for(int i = min_h+5; i < max_h-5; i++){
+        for(int j = map_image_w_/2; j < map_image_w_; j++){
+            int point_x = j;
+            int point_y;
+            if(i != map_image_h_/2)
+                point_y = (j-map_image_w_/2)*(i-map_image_h_/2)/(map_image_w_/2) + map_image_h_/2;
+            else
+                point_y = map_image_h_/2;
+            int index = point_y * costmap2d_.step + point_x * costmap2d_.channels();
+            if(costmap2d_.data[index] == 0 && costmap2d_.data[index+1] == 255 && costmap2d_.data[index+2] == 0){
+                // std::cout << "meet obstcal;" << std::endl;
+                int radius = (int)(robot_radius_/resolution_size_);
+                if(point_x < map_image_w_ - radius)
+                    cv::circle(inflation_map_,cv::Point2i(point_x, point_y), radius, cv::Scalar(169,169,169), -1, 8); // 膨胀处理
+                break;
+            }
+        }
+    }
+
+    for(int i = min_h+5; i < max_h-5; i++){
+        for(int j = map_image_w_/2; j < map_image_w_; j++){
+            int point_x = j;
+            int point_y;
+            if(i != map_image_h_/2)
+                point_y = (j-map_image_w_/2)*(i-map_image_h_/2)/(map_image_w_/2) + map_image_h_/2;
+            else
+                point_y = map_image_h_/2;
+            int index = point_y * inflation_map_.step + point_x * inflation_map_.channels();
+            if(inflation_map_.data[index] == 169 && inflation_map_.data[index+1] == 169 && inflation_map_.data[index+2] == 169){
+                break; 
+            }
+            
+            // 空闲区域区域
+            config_map_.data[index] = 255;
+            config_map_.data[index+1] = 192;
+            config_map_.data[index+2] =203;
+        }
+    }
+
+    // for ( int v=0; v<inflation_map_.rows; v++ ){
+    //     for ( int u=0; u<inflation_map_.cols; u++ ) {
+    //         int index = v*inflation_map_.step+u*inflation_map_.channels();
+    //         if(inflation_map_.data[index] == 255 && inflation_map_.data[index+1] == 0 && inflation_map_.data[index+2] == 0){
+    //             config_map_.data[index] = 255;
+    //             config_map_.data[index+1] = 192;
+    //             config_map_.data[index+2] = 203;
+    //         } 
+    //     }
+    // }
+ 
 }
 
 void LRGBDCostMap::drawCross(void){
@@ -121,15 +175,14 @@ void LRGBDCostMap::drawFreeArea(void){
             else
                 point_y = map_image_h_/2;
             int index = point_y * costmap2d_.step + point_x * costmap2d_.channels();
-            if(costmap2d_.data[index] == 0 && costmap2d_.data[index+1] == 255 && costmap2d_.data[index+2] == 0){
-                // std::cout << "meet obstcal;" << std::endl;
-                break;
-                
+            if(costmap2d_.data[index] == 0 && costmap2d_.data[index+1] == 255 && costmap2d_.data[index+2] == 0){ 
+                break; 
             }
-                
+            
+            // 空闲区域区域
             costmap2d_.data[index] = 255;
             costmap2d_.data[index+1] = 0;
             costmap2d_.data[index+2] =0;
         }
-    }
+    } 
 }

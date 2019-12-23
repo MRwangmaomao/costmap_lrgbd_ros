@@ -87,6 +87,7 @@ int main(int argc, char **argv){
     double resolution_size = fsSettings["resolution_size"];
     double map_width = fsSettings["map_width"];
     double map_height = fsSettings["map_height"];
+    double robot_radius = fsSettings["robot_radius"];
     // bool display_costmap = fsSettings["display_costmap"];
     bool display_costmap = false;
     
@@ -94,7 +95,7 @@ int main(int argc, char **argv){
     fsSettings["DEPTH_BASE"] >> Tdepth2base;
     fsSettings["LIDAR_BASE"] >> Tdepth2base; 
  
-    lrgbd_tmap.init(camera_K, image_height, image_width, resolution_size, map_width, map_height, display_costmap, depthScale, Tdepth2base, Tdepth2base);
+    lrgbd_tmap.init(camera_K, image_height, image_width, resolution_size, map_width, map_height, display_costmap, depthScale, Tdepth2base, Tdepth2base, robot_radius);
     
     std::string depth_topic = fsSettings["depth_topic"];
     std::string lidar_topic = fsSettings["lidar_topic"];

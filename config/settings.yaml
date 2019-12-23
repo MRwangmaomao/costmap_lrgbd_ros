@@ -21,6 +21,7 @@ fy: 611.4857177734375
 cx: 433.2039794921875
 cy: 249.4730224609375
 depthScale: 1000
+
 # /base_link to /d400_depth 
 DEPTH_BASE:  !!opencv-matrix
    rows: 4
@@ -41,6 +42,8 @@ LIDAR_BASE:  !!opencv-matrix
 angle_min: 0.0
 angle_max: 0.0
 
+# robot param
+robot_radius: 0.4
 
 # Other parameters
 display_costmap: true # default: true 
