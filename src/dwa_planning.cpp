@@ -65,7 +65,11 @@ void DWAPlanning::init(std::string config_file_path){
 }
 
 void DWAPlanning::getWayPoint(){
-
+    if(waypoints_queue_.size() > 0){
+        robot_costmap_waypoint_ = waypoints_queue_.front();
+        waypoints_queue_.pop();
+    }
+    waypoints_queue_.size();
 }
 
 void DWAPlanning::setWayPointInCostmap(){
@@ -77,5 +81,30 @@ bool DWAPlanning::isArriveWayPoint(){
 }
 
 bool DWAPlanning::isArriveDestination(){
-
+    return false;
 }
+
+bool DWAPlanning::dwa_control(const cv::Mat& config_map){
+    return true;
+}
+
+void DWAPlanning::move(Eigen::Matrix4d robot_pose, const cv::Mat& config_map, double & go_v, double & turn_v){
+    getWayPoint();
+    if(isArriveDestination()){
+        go_v = 0.0;
+        turn_v = 0.0;
+        return;
+    }
+    if(isArriveWayPoint()){
+        getWayPoint();
+        setWayPointInCostmap();
+    }
+
+    if(!dwa_control(config_map))
+        std::cerr << "DWA Plan is failed!!\n";
+    go_v = go_v_;
+    turn_v = turn_v_;
+    go_v_ = 0.0;
+    turn_v_ = 0.0;
+}
+

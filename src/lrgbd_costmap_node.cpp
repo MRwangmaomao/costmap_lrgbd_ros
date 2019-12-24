@@ -14,8 +14,12 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/image_encodings.h> 
-#include <tf/transform_broadcaster.h> 
+#include <tf/transform_broadcaster.h>
+#include <tf2_msgs/TFMessage.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h> 
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud.h>
 #include "costmap_lrgbd_ros/lrgbd2xz.h"
 #include "costmap_lrgbd_ros/dwa_planning.h"
@@ -24,6 +28,8 @@
 
 LRGBDCostMap lrgbd_tmap;
 DWAPlanning dwa_planer;
+Eigen::Matrix4d robot_pose;
+ros::Publisher speed_pub;
 
 template<typename T>
 T getOption(ros::NodeHandle& pnh,
@@ -40,9 +46,14 @@ void img_callback(const sensor_msgs::ImageConstPtr &depth)
 {  
     try
     {
+        double go_v = 0.0, turn_v = 0.0;
+        geometry_msgs::Twist pub_speed;
         cv_bridge::CvImagePtr cv_image = cv_bridge::toCvCopy(depth);
         lrgbd_tmap.depthCameraToCostMap(cv_image->image);
-
+        dwa_planer.move(robot_pose, lrgbd_tmap.config_map_, go_v, turn_v);
+        pub_speed.linear.x = go_v;
+        pub_speed.angular.z = turn_v;
+        speed_pub.publish(pub_speed);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -62,6 +73,16 @@ void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& scan){
     }
 }
 
+void robot_pose_callback(const tf2_msgs::TFMessage::ConstPtr msg){ 
+    robot_pose.col(3).head(3) << msg->transforms.at(0).transform.translation.x, 
+                            msg->transforms.at(0).transform.translation.y,
+                            msg->transforms.at(0).transform.translation.z;
+    Eigen::Quaterniond robot_Q(msg->transforms.at(0).transform.rotation.w,msg->transforms.at(0).transform.rotation.x,
+                            msg->transforms.at(0).transform.rotation.y,msg->transforms.at(0).transform.rotation.z);
+    robot_pose.block(0,0,3,3) << robot_Q.toRotationMatrix();
+}
+ 
+
 int main(int argc, char **argv){
     ros::init(argc, argv, "lrgbd_costmap");
     ros::start();
@@ -73,6 +94,10 @@ int main(int argc, char **argv){
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
     std::string config_file;
     std::string dwa_file;
+    robot_pose << 0.0, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 0.0, 1.0;
     if(argc >=2){
         config_file = argv[1];
         dwa_file = argv[2];
@@ -100,6 +125,7 @@ int main(int argc, char **argv){
     double map_width = fsSettings["map_width"];
     double map_height = fsSettings["map_height"];
     double robot_radius = fsSettings["robot_radius"];
+
     // bool display_costmap = fsSettings["display_costmap"];
     bool display_costmap = false;
     
@@ -112,11 +138,14 @@ int main(int argc, char **argv){
 
     std::string depth_topic = fsSettings["depth_topic"];
     std::string lidar_topic = fsSettings["lidar_topic"];
+    std::string robot_pose_topic = fsSettings["robot_pose_topic"];
     std::string camera_info = fsSettings["camera_info"];
  
     ros::Subscriber sub_img = nh.subscribe(depth_topic, 100, img_callback);
     ros::Subscriber sub_laser = nh.subscribe(lidar_topic, 100, lidar_callback);
-      
+    ros::Subscriber sub_robot_pose = nh.subscribe(robot_pose_topic, 100, robot_pose_callback);
+    speed_pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
+
     ros::spin(); 
     ROS_INFO("shutting down!");
     ros::shutdown();

@@ -20,16 +20,17 @@ public:
     DWAPlanning();
     ~DWAPlanning(void);
 
-    void init(std::string config_file_path);
+    void init(std::string config_file_path); 
+    void move(Eigen::Matrix4d robot_pose, const cv::Mat& config_map, double & go_v, double & turn_v);
+
+private:
     void getWayPoint();
     void getRobotLocalization();
     void setWayPointInCostmap();
     void getAllWayPoints();
     bool isArriveWayPoint();
     bool isArriveDestination();
-    
-
-private:
+    bool dwa_control(const cv::Mat&); 
     double max_acc_x_;
     double max_acc_theta_;
     double max_speed_;
@@ -40,8 +41,11 @@ private:
     double short_foresee_rate_;
     double sim_period_;
     bool aggressive_mode_;
+    double go_v_;
+    double turn_v_;
     std::string waypoints_file_path_;
     std::queue<Eigen::Vector3d> waypoints_queue_;
     Eigen::Vector3d robot_costmap_waypoint_;
-    Eigen::Vector3d robot_pose_;
+    Eigen::Vector4d robot_pose_;
+
 };

@@ -25,7 +25,8 @@ public:
     void drawCross(void);
     void drawRGBDBounds(void);
     void drawFreeArea(void);
-
+ 
+    cv::Mat config_map_;
 
 private:
     cv::Mat costmap2d_;
@@ -49,5 +50,4 @@ private:
     Eigen::Matrix<double, 4, 4> T_laser2base_;
     cv::Mat T_base2world_;
     cv::Mat inflation_map_;
-    cv::Mat config_map_;
 };
