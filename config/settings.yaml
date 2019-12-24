@@ -8,6 +8,7 @@ map_height: 10.0 # default: 5.0
 
 # lidar parameters
 lidar_topic: "/scan"
+robot_pose_topic: "/gt"  
 
 # camera parameters  
 camera_name: "/d400"
@@ -44,6 +45,8 @@ angle_max: 0.0
 
 # robot param
 robot_radius: 0.4
+
+
 
 # Other parameters
 display_costmap: true # default: true 

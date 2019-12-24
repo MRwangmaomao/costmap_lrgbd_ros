@@ -74,14 +74,15 @@ void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& scan){
 }
 
 void robot_pose_callback(const tf2_msgs::TFMessage::ConstPtr msg){ 
-    robot_pose.col(3).head(3) << msg->transforms.at(0).transform.translation.x, 
-                            msg->transforms.at(0).transform.translation.y,
-                            msg->transforms.at(0).transform.translation.z;
+    robot_pose(3,0) = msg->transforms.at(0).transform.translation.x;
+    robot_pose(3,1) = msg->transforms.at(0).transform.translation.y;
+    robot_pose(3,2) = msg->transforms.at(0).transform.translation.z; 
     Eigen::Quaterniond robot_Q(msg->transforms.at(0).transform.rotation.w,msg->transforms.at(0).transform.rotation.x,
                             msg->transforms.at(0).transform.rotation.y,msg->transforms.at(0).transform.rotation.z);
     robot_pose.block(0,0,3,3) << robot_Q.toRotationMatrix();
 }
- 
+
+
 
 int main(int argc, char **argv){
     ros::init(argc, argv, "lrgbd_costmap");
@@ -99,8 +100,7 @@ int main(int argc, char **argv){
                   0.0, 0.0, 0.0, 0.0,
                   0.0, 0.0, 0.0, 1.0;
     if(argc >=2){
-        config_file = argv[1];
-        dwa_file = argv[2];
+        config_file = argv[1]; 
     }
     else{
         std::cout<<"args too small.\n";
@@ -134,7 +134,7 @@ int main(int argc, char **argv){
     fsSettings["LIDAR_BASE"] >> Tdepth2base; 
  
     lrgbd_tmap.init(camera_K, image_height, image_width, resolution_size, map_width, map_height, display_costmap, depthScale, Tdepth2base, Tdepth2base, robot_radius);
-    dwa_planer.init(dwa_file);
+    dwa_planer.init(dwa_file, depthScale, camera_K, map_width, map_height, resolution_size);
 
     std::string depth_topic = fsSettings["depth_topic"];
     std::string lidar_topic = fsSettings["lidar_topic"];
@@ -146,7 +146,7 @@ int main(int argc, char **argv){
     ros::Subscriber sub_robot_pose = nh.subscribe(robot_pose_topic, 100, robot_pose_callback);
     speed_pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
 
-    ros::spin(); 
+    ros::spin();
     ROS_INFO("shutting down!");
     ros::shutdown();
     return 0;

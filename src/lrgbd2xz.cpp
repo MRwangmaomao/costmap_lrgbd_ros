@@ -36,10 +36,10 @@ void LRGBDCostMap::init(Eigen::Matrix3d camera_K, int image_height, int image_wi
     band_width_ = (int)(((image_width_/2 - cx_) * (map_width_/2) / fx_) /resolution_size_);
 
     std::cout << "\nCostmap configuration parameters: " << std::endl << 
-        "band_width: " <<  band_width_ << std::endl << 
-        "map_image_w: " << map_image_w_ << std::endl << 
-        "map_image_h: " << map_image_h_ << std::endl << 
-        "robot_radius : " << robot_radius_ << std::endl;
+        "   band_width: " <<  band_width_ << std::endl << 
+        "   map_image_w: " << map_image_w_ << std::endl << 
+        "   map_image_h: " << map_image_h_ << std::endl << 
+        "   robot_radius : " << robot_radius_ << std::endl;
 }
 
 void LRGBDCostMap::laserToCostMap(void){
