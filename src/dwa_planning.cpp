@@ -16,6 +16,7 @@ void DWAPlanning::init(std::string config_file_path, int depthscale, Eigen::Matr
     map_height_ =map_height;
     resolution_size_ = resolution_size;
     waypoint_id_ = 0;
+    robot_pose_id_ = 0;
     first_flag_ = true;
     cv::FileStorage fsSettings(config_file_path, cv::FileStorage::READ);
     max_acc_x_ = fsSettings["max_acc_x"];
@@ -112,11 +113,11 @@ void DWAPlanning::setWayPointInCostmap(){
 
 // 根据距离误差，后面还需要添加角度误差
 bool DWAPlanning::isArriveWayPoint(){
-    std::cout << "robot position: " << robot_pose_(3,0) << "  " << robot_pose_(3,1) << 
+    std::cout << "robot position: " << robot_pose_(0,3) << "  " << robot_pose_(1,3) << " " << robot_pose_id_ << "        " << 
                  "robot destination: " << robot_waypoint_(0) << " " << robot_waypoint_(1) << "      " << waypoint_id_ << std::endl;
-    double distance_err = sqrt((robot_pose_(3,0) - robot_waypoint_(0))*(robot_pose_(3,0) - robot_waypoint_(0)) +
-    (robot_pose_(3,1) - robot_waypoint_(1))*(robot_pose_(3,1) - robot_waypoint_(1)));
-    // std::cout << "distance_err is : " << distance_err << std::endl;
+    double distance_err = sqrt((robot_pose_(0,3) - robot_waypoint_(0))*(robot_pose_(0,3) - robot_waypoint_(0)) +
+    (robot_pose_(1,3) - robot_waypoint_(1))*(robot_pose_(1,3) - robot_waypoint_(1)));
+    std::cout << "distance_err is : " << distance_err << std::endl;
     if(distance_err < distance_threshold_){      
         return true;
     }
@@ -145,7 +146,8 @@ bool DWAPlanning::dwa_control(const cv::Mat& config_map){
     return true;
 }
 
-void DWAPlanning::move(Eigen::Matrix4d robot_pose, const cv::Mat& config_map, double & go_v, double & turn_v){
+void DWAPlanning::move(long int robot_pose_id, Eigen::Matrix4d robot_pose, const cv::Mat& config_map, double & go_v, double & turn_v){
+    robot_pose_id_ = robot_pose_id;
     robot_pose_ = robot_pose;
     if(first_flag_ == true){
         first_flag_ = false;

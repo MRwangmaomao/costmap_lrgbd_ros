@@ -21,7 +21,7 @@ public:
     DWAPlanning();
     ~DWAPlanning(void); 
     void init(std::string config_file_path, int depthscale, Eigen::Matrix3d camera_k, double map_width, double map_height, double resolution_size); 
-    void move(Eigen::Matrix4d robot_pose, const cv::Mat& config_map, double & go_v, double & turn_v);
+    void move(long int robot_pose_id, Eigen::Matrix4d robot_pose, const cv::Mat& config_map, double & go_v, double & turn_v);
 
 private:
     void getWayPoint();
@@ -49,6 +49,7 @@ private:
     double map_height_;
     double resolution_size_;
     int waypoint_id_;
+    long int robot_pose_id_;
     bool first_flag_;
     Eigen::Matrix3d camera_k_;
     std::string waypoints_file_path_;

@@ -30,6 +30,7 @@ LRGBDCostMap lrgbd_tmap;
 DWAPlanning dwa_planer;
 Eigen::Matrix4d robot_pose;
 ros::Publisher speed_pub;
+long int robot_pose_id;
 
 template<typename T>
 T getOption(ros::NodeHandle& pnh,
@@ -50,7 +51,7 @@ void img_callback(const sensor_msgs::ImageConstPtr &depth)
         geometry_msgs::Twist pub_speed;
         cv_bridge::CvImagePtr cv_image = cv_bridge::toCvCopy(depth);
         lrgbd_tmap.depthCameraToCostMap(cv_image->image);
-        dwa_planer.move(robot_pose, lrgbd_tmap.config_map_, go_v, turn_v);
+        dwa_planer.move(robot_pose_id, robot_pose, lrgbd_tmap.config_map_, go_v, turn_v);
         pub_speed.linear.x = go_v;
         pub_speed.angular.z = turn_v;
         speed_pub.publish(pub_speed);
@@ -73,13 +74,14 @@ void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& scan){
     }
 }
 
-void robot_pose_callback(const tf2_msgs::TFMessage::ConstPtr msg){ 
-    robot_pose(3,0) = msg->transforms.at(0).transform.translation.x;
-    robot_pose(3,1) = msg->transforms.at(0).transform.translation.y;
-    robot_pose(3,2) = msg->transforms.at(0).transform.translation.z; 
+void robot_pose_callback(const tf2_msgs::TFMessage::ConstPtr msg){
+    robot_pose_id++;
+    robot_pose(0,3) = msg->transforms.at(0).transform.translation.x;
+    robot_pose(1,3) = msg->transforms.at(0).transform.translation.y;
+    robot_pose(2,3) = msg->transforms.at(0).transform.translation.z; 
     Eigen::Quaterniond robot_Q(msg->transforms.at(0).transform.rotation.w,msg->transforms.at(0).transform.rotation.x,
                             msg->transforms.at(0).transform.rotation.y,msg->transforms.at(0).transform.rotation.z);
-    robot_pose.block(0,0,3,3) << robot_Q.toRotationMatrix();
+    robot_pose.block(0,0,3,3) = robot_Q.toRotationMatrix();
 }
 
 
@@ -99,6 +101,7 @@ int main(int argc, char **argv){
                   0.0, 0.0, 0.0, 0.0,
                   0.0, 0.0, 0.0, 0.0,
                   0.0, 0.0, 0.0, 1.0;
+    robot_pose_id = 0;
     if(argc >=2){
         config_file = argv[1]; 
     }
