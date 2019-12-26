@@ -57,13 +57,28 @@ void LRGBDCostMap::depthCameraToCostMap(cv::Mat depth_image){
             point[1] = (v-cy_)*point[2]/fy_;
             point[3] = 1;
             Eigen::Matrix<double, 4, 1> pointWorld;
-            // pointWorld = T_camera2base_ * point;  
             pointWorld = point;
+
             if(pointWorld[0] > -(map_height_/2) && pointWorld[0] < map_height_/2 && pointWorld[2] > -(map_width_/2) && pointWorld[2] < map_width_/2  && pointWorld[1] > -0.85) {
             costmap2d_.data[ (uint)(pointWorld[0]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uint)(pointWorld[2]/resolution_size_  + map_image_w_/2)*costmap2d_.channels() ] = 0;
             costmap2d_.data[ (uint)(pointWorld[0]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uint)(pointWorld[2]/resolution_size_  + map_image_w_/2)*costmap2d_.channels()+1 ] = 255;
             costmap2d_.data[ (uint)(pointWorld[0]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uint)(pointWorld[2]/resolution_size_ + map_image_w_/2)*costmap2d_.channels()+2 ] = 0;
             }
+
+            // Eigen::Vector4d point;
+            // point(0) = (u-cx_)*point[2]/fx_;
+            // point(1) = (v-cy_)*point[2]/fy_;
+            // point(2) = double(d)/depthScale_;
+            // point(3) = 1;
+            // Eigen::Vector4d pointWorld;
+            
+            // pointWorld = T_camera2base_ * point;  
+            // // std::cout << pointWorld << std::endl;
+            // if(pointWorld[1] > -(map_height_/2) && pointWorld[1] < map_height_/2 && pointWorld[0] > -(map_width_/2) && pointWorld[0] < map_width_/2  && pointWorld[2] > 0.1) {
+            //     costmap2d_.data[ (uint)(pointWorld[1]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uint)(pointWorld[0]/resolution_size_  + map_image_w_/2)*costmap2d_.channels() ] = 0;
+            //     costmap2d_.data[ (uint)(pointWorld[1]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uint)(pointWorld[0]/resolution_size_  + map_image_w_/2)*costmap2d_.channels()+1 ] = 255;
+            //     costmap2d_.data[ (uint)(pointWorld[1]/resolution_size_ + map_image_h_/2) * costmap2d_.step+(uint)(pointWorld[0]/resolution_size_ + map_image_w_/2)*costmap2d_.channels()+2 ] = 0;
+            // }
         }
     }
     drawFreeArea(); // 可通行区域
@@ -132,7 +147,7 @@ void LRGBDCostMap::inflationHighResolution(void){
                 break; 
             }
             
-            // 空闲区域区域
+            // 空闲区域
             config_map_.data[index] = 255;
             config_map_.data[index+1] = 192;
             config_map_.data[index+2] =203;

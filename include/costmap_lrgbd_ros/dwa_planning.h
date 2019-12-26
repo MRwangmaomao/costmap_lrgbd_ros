@@ -13,7 +13,7 @@
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-
+#include <visualization_msgs/Marker.h>
 
 class DWAPlanning{
 
@@ -22,7 +22,8 @@ public:
     ~DWAPlanning(void); 
     void init(std::string config_file_path, int depthscale, Eigen::Matrix3d camera_k, double map_width, double map_height, double resolution_size); 
     void move(long int robot_pose_id, Eigen::Matrix4d robot_pose, const cv::Mat& config_map, double & go_v, double & turn_v);
-
+    visualization_msgs::Marker dest_waypoint_pub();
+    
 private:
     void getWayPoint();
     void getRobotLocalization();

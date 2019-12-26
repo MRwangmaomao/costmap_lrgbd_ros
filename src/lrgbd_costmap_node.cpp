@@ -32,7 +32,8 @@ LRGBDCostMap lrgbd_tmap;
 DWAPlanning dwa_planer;
 Eigen::Matrix4d robot_pose;
 ros::Publisher speed_pub;
-ros::Publisher marker_pub; 
+ros::Publisher all_marker_pub;
+ros::Publisher dest_marker_pub; 
 long int robot_pose_id;
 std::string all_waypoint_file;
 bool pub_waypoint_marker_flag;
@@ -121,14 +122,14 @@ void waypoints_pub(std::string waypoints_file_path, int robot_start_x, int robot
         str<<k;
         waypoints_marker.text=str.str();
         waypoints_markerArray.markers.push_back(waypoints_marker); 
-        while(marker_pub.getNumSubscribers() < 1){
+        while(all_marker_pub.getNumSubscribers() < 1){
             if (!ros::ok()){
     //             return 0; 
             }
             ROS_WARN_ONCE("Please create a subscriber to the marker");
             sleep(1);
         }
-        marker_pub.publish(waypoints_markerArray); 
+        all_marker_pub.publish(waypoints_markerArray); 
         k++;
 	} 
 	waypoint_file.close();   
@@ -141,8 +142,8 @@ void robot_pose_callback(const tf2_msgs::TFMessage::ConstPtr msg){
     robot_pose(0,3) = msg->transforms.at(0).transform.translation.x;
     robot_pose(1,3) = msg->transforms.at(0).transform.translation.y;
     robot_pose(2,3) = msg->transforms.at(0).transform.translation.z; 
-    Eigen::Quaterniond robot_Q(msg->transforms.at(0).transform.rotation.x, msg->transforms.at(0).transform.rotation.y,
-                            msg->transforms.at(0).transform.rotation.z, msg->transforms.at(0).transform.rotation.w);
+    Eigen::Quaterniond robot_Q(msg->transforms.at(0).transform.rotation.w, msg->transforms.at(0).transform.rotation.x, 
+        msg->transforms.at(0).transform.rotation.y, msg->transforms.at(0).transform.rotation.z);
     robot_pose.block(0,0,3,3) = robot_Q.toRotationMatrix();
     static tf::TransformBroadcaster br;
     tf::Transform transform;
@@ -150,11 +151,12 @@ void robot_pose_callback(const tf2_msgs::TFMessage::ConstPtr msg){
     tf::Quaternion q(msg->transforms.at(0).transform.rotation.x, msg->transforms.at(0).transform.rotation.y,
                     msg->transforms.at(0).transform.rotation.z,msg->transforms.at(0).transform.rotation.w);
     transform.setRotation(q);
-    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/map", "/base_link"));
+    br.sendTransform(tf::StampedTransform(transform, msg->transforms.at(0).header.stamp.now(), "/map", "/base_link"));
     if(!pub_waypoint_marker_flag){
         pub_waypoint_marker_flag = true;
         waypoints_pub(all_waypoint_file, robot_pose(0,3), robot_pose(1,3));
     }
+    dest_marker_pub.publish(dwa_planer.dest_waypoint_pub());
 }
 
 int main(int argc, char **argv){
@@ -221,8 +223,8 @@ int main(int argc, char **argv){
     ros::Subscriber sub_laser = nh.subscribe(lidar_topic, 100, lidar_callback);
     ros::Subscriber sub_robot_pose = nh.subscribe(robot_pose_topic, 100, robot_pose_callback);
     speed_pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
-    marker_pub = nh.advertise<visualization_msgs::MarkerArray>("/WayPoints",10);
-    
+    all_marker_pub = nh.advertise<visualization_msgs::MarkerArray>("/WayPoints",10);
+    dest_marker_pub = nh.advertise<visualization_msgs::Marker>("/DestWayPoint",10);
 
     ros::spin();
     ROS_INFO("shutting down!");

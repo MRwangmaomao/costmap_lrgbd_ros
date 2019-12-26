@@ -99,8 +99,7 @@ void DWAPlanning::setWayPointInCostmap(){
                          0, 0, 0, 0,
                          0, 0, 0, 0,
                          0, 0, 0, 1;
-
-    
+ 
     // 初始化欧拉角(Z-Y-X，即RPY, 先绕x轴roll,再绕y轴pitch,最后绕z轴yaw)  
     T_world_waypoint(0,3) = robot_waypoint_[0];
     T_world_waypoint(1,3) = robot_waypoint_[1];
@@ -113,21 +112,54 @@ void DWAPlanning::setWayPointInCostmap(){
     Eigen::Matrix3d r_world_waypoint;
     r_world_waypoint = q_world_waypoint.matrix();
     T_world_waypoint.block(0,0,3,3) = r_world_waypoint;
-
+    Eigen::Vector4d t_world_waypoint(robot_waypoint_[0], robot_waypoint_[1], robot_waypoint_[2], 1); 
     // std::cout << "\nT_world_waypoint: \n" << T_world_waypoint << std::endl;
     // 求出路标点在机器人坐标系下的坐标
-    Eigen::Matrix4d T_robot_waypoint = robot_pose_.inverse() * T_world_waypoint;
+    Eigen::Matrix4d T_robot_waypoint = robot_pose_.inverse() * T_world_waypoint; 
     // Eigen::Matrix4d T_robot_waypoint = T_world_waypoint.inverse() * robot_pose_;
-    robot_wapoint_in_costmap_(0) = T_robot_waypoint(0,3);
-    robot_wapoint_in_costmap_(1) = T_robot_waypoint(1,3);
+    // robot_wapoint_in_costmap_(0) = T_robot_waypoint(0,3); // x
+    // robot_wapoint_in_costmap_(1) = T_robot_waypoint(1,3); // y
     std::cout << "\nActrual position is: " << robot_wapoint_in_costmap_(0) << "     " << robot_wapoint_in_costmap_(1) << std::endl;
     // ZYX顺序，即先绕x轴roll,再绕y轴pitch,最后绕z轴yaw, 0表示X轴,1表示Y轴,2表示Z轴
     Eigen::Matrix3d r_robot_waypoint;
     r_robot_waypoint = T_robot_waypoint.block(0,0,3,3);
     Eigen::Vector3d euler_angles = r_robot_waypoint.eulerAngles(2, 1, 0); 
-    robot_wapoint_in_costmap_(0) = robot_wapoint_in_costmap_(0)/resolution_size_ + (map_height_/resolution_size_)/2;
-    robot_wapoint_in_costmap_(1) = robot_wapoint_in_costmap_(1)/resolution_size_ + (map_width_/resolution_size_)/2;
+    // if(T_robot_waypoint(0,3) < 0)
+    // {
+    //     std::cout << "---------------------------\nrobot_pose_:\n" <<
+    //         robot_pose_ << "\nT_world_waypoint:\n" << T_world_waypoint << "\nT_robot_waypoint:\n" <<
+    //         T_robot_waypoint << "\n" << "\n-----------------------------------------------\n\n" << std::endl;
+    //     T_robot_waypoint(0,3) = -T_robot_waypoint(0,3);
+    // }
+         
+    robot_wapoint_in_costmap_(0) = T_robot_waypoint(0,3)/resolution_size_ + (map_height_/resolution_size_)/2;
+    robot_wapoint_in_costmap_(1) = -T_robot_waypoint(1,3)/resolution_size_ + (map_width_/resolution_size_)/2;
     std::cout << "\nrobot in image map: " << robot_wapoint_in_costmap_(0) << "      " << robot_wapoint_in_costmap_(1)  << std::endl;
+}
+
+visualization_msgs::Marker DWAPlanning::dest_waypoint_pub()
+{
+    visualization_msgs::Marker dest_mark;
+    dest_mark.header.frame_id = "/map";
+    dest_mark.header.stamp = ros::Time::now(); 
+    dest_mark.type = visualization_msgs::Marker::CUBE;
+    dest_mark.id = 0;
+    dest_mark.ns = "basic_shapes";
+    dest_mark.scale.x = 0.1;
+    dest_mark.scale.y = 0.1;
+    dest_mark.scale.z = 0.1;
+    dest_mark.color.b = 0.0;
+    dest_mark.color.g = 0.0;
+    dest_mark.color.r = 1.0;
+    dest_mark.color.a = 1.0;
+    dest_mark.lifetime = ros::Duration(); 
+    geometry_msgs::Pose pose; 
+    pose.position.x = robot_waypoint_[0];
+    pose.position.y = robot_waypoint_[1];
+    pose.position.z = 0;
+    pose.orientation.w = 1.0;
+    dest_mark.pose = pose; 
+    return dest_mark;
 }
 
 // 根据距离误差，后面还需要添加角度误差
@@ -154,8 +186,8 @@ bool DWAPlanning::isArriveDestination(){
 bool DWAPlanning::dwa_control(const cv::Mat& config_map){
     cv::Mat dwa_image_map = config_map.clone(); 
     int cross_line_size = 10;
-    cv::line(dwa_image_map, cvPoint(robot_wapoint_in_costmap_(0)-cross_line_size/2,robot_wapoint_in_costmap_(1)), cvPoint(robot_wapoint_in_costmap_(0)+cross_line_size/2, robot_wapoint_in_costmap_(1)), cv::Scalar(0,0,255), 3, 8, 0); 
-	cv::line(dwa_image_map, cvPoint(robot_wapoint_in_costmap_(0),robot_wapoint_in_costmap_(1)-cross_line_size/2), cvPoint(robot_wapoint_in_costmap_(0), robot_wapoint_in_costmap_(1)+cross_line_size/2), cv::Scalar(0,0,255), 3, 8, 0);
+    cv::line(dwa_image_map, cvPoint(robot_wapoint_in_costmap_(0)-cross_line_size/2,robot_wapoint_in_costmap_(1)), cvPoint(robot_wapoint_in_costmap_(0)+cross_line_size/2, robot_wapoint_in_costmap_(1)), cv::Scalar(0,0,255), 1, 8, 0); 
+	cv::line(dwa_image_map, cvPoint(robot_wapoint_in_costmap_(0),robot_wapoint_in_costmap_(1)-cross_line_size/2), cvPoint(robot_wapoint_in_costmap_(0), robot_wapoint_in_costmap_(1)+cross_line_size/2), cv::Scalar(0,0,255), 1, 8, 0);
 
     cv::namedWindow("dwa");
     cv::imshow("dwa",dwa_image_map);
