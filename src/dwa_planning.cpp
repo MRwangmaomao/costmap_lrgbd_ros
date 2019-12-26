@@ -32,13 +32,14 @@ void DWAPlanning::init(std::string config_file_path, int depthscale, Eigen::Matr
     std::ifstream waypoint_file(waypoints_file_path_);
     std::cout << "\nWaypoint Lists:\n";
     std::string temp;
-    double waypoint_x, waypoint_y, waypoint_theta;
+    double waypoint_x, waypoint_y;
     double q_x, q_y, q_z, q_w;
     std::string temp_w;
     while(getline(waypoint_file,temp)) //按行读取字符串 
 	{
+        
         std::stringstream input(temp);
-        input>>temp_w;
+        input>>temp_w; // time
         input>>temp_w; 
         waypoint_x = atof(temp_w.c_str());
         input>>temp_w; 
@@ -52,10 +53,16 @@ void DWAPlanning::init(std::string config_file_path, int depthscale, Eigen::Matr
         q_y = atof(temp_w.c_str());
         input>>temp_w;
         q_z = atof(temp_w.c_str());
-        
-        waypoint_theta = (double)(atan2(2 * (q_x*q_y + q_w*q_z), 1 - 2*(q_y*q_y - q_z*q_z)));
-		std::cout << "  " << waypoint_x << " " << waypoint_y << " " << waypoint_theta << std::endl;
-        Eigen::Vector3d point_temp(waypoint_x, waypoint_y, waypoint_theta);
+         
+		std::cout << "  " << waypoint_x << " " << waypoint_y << std::endl;
+        std::vector<double> point_temp;
+        point_temp.push_back(waypoint_x);
+        point_temp.push_back(waypoint_y);
+        point_temp.push_back(0);
+        point_temp.push_back(q_w);
+        point_temp.push_back(q_x);
+        point_temp.push_back(q_y);
+        point_temp.push_back(q_z);
         waypoints_queue_.push(point_temp);
 	} 
 	waypoint_file.close();
@@ -70,7 +77,7 @@ void DWAPlanning::init(std::string config_file_path, int depthscale, Eigen::Matr
         "   region_foresee: " << region_foresee_ << std::endl << 
         "   short_foresee_rate: " << short_foresee_rate_ << std::endl << 
         "   sim_period: " << sim_period_ << std::endl << 
-        "   waypoints_file_path" << waypoints_file_path_ << std::endl
+        "   waypoints_file_path: " << waypoints_file_path_ << std::endl
         << std::endl;
 }
 
@@ -80,44 +87,56 @@ void DWAPlanning::getWayPoint(){
         waypoints_queue_.pop();
         waypoint_id_++;
         std::cout << "\n\n ------------------------------\nget a new points: " 
-        << robot_waypoint_(0) << " " << robot_waypoint_(1) << std::endl;
+        << robot_waypoint_[0] << " " << robot_waypoint_[1] << std::endl;
     }
     waypoints_queue_.size();
 }
 
 void DWAPlanning::setWayPointInCostmap(){
+    
     Eigen::Matrix4d T_world_waypoint;
     T_world_waypoint  << 0, 0, 0, 0, 
                          0, 0, 0, 0,
                          0, 0, 0, 0,
                          0, 0, 0, 1;
-    // 初始化欧拉角(Z-Y-X，即RPY, 先绕x轴roll,再绕y轴pitch,最后绕z轴yaw)  
-    T_world_waypoint(3,0) = robot_waypoint_(0);
-    T_world_waypoint(3,1) = robot_waypoint_(1);
+
     
-    Eigen::Matrix3d rotation_matrix3;
-    rotation_matrix3 = Eigen::AngleAxisd(robot_waypoint_(2), Eigen::Vector3d::UnitZ()) * 
-                       Eigen::AngleAxisd(0, Eigen::Vector3d::UnitY()) * 
-                       Eigen::AngleAxisd(0, Eigen::Vector3d::UnitX());
- 
-    Eigen::Matrix4d T_robot_waypoint =  robot_pose_ * T_world_waypoint.inverse();
-    robot_wapoint_in_costmap_(0) = T_robot_waypoint(3,0);
-    robot_wapoint_in_costmap_(1) = T_robot_waypoint(3,1);
+    // 初始化欧拉角(Z-Y-X，即RPY, 先绕x轴roll,再绕y轴pitch,最后绕z轴yaw)  
+    T_world_waypoint(0,3) = robot_waypoint_[0];
+    T_world_waypoint(1,3) = robot_waypoint_[1];
+    T_world_waypoint(2,3) = robot_waypoint_[2];
+    Eigen::Quaterniond q_world_waypoint;
+    q_world_waypoint.w() = robot_waypoint_[3];
+    q_world_waypoint.x() = robot_waypoint_[4];
+    q_world_waypoint.y() = robot_waypoint_[5];
+    q_world_waypoint.z() = robot_waypoint_[6];
+    Eigen::Matrix3d r_world_waypoint;
+    r_world_waypoint = q_world_waypoint.matrix();
+    T_world_waypoint.block(0,0,3,3) = r_world_waypoint;
+
+    // std::cout << "\nT_world_waypoint: \n" << T_world_waypoint << std::endl;
+    // 求出路标点在机器人坐标系下的坐标
+    Eigen::Matrix4d T_robot_waypoint = robot_pose_.inverse() * T_world_waypoint;
+    // Eigen::Matrix4d T_robot_waypoint = T_world_waypoint.inverse() * robot_pose_;
+    robot_wapoint_in_costmap_(0) = T_robot_waypoint(0,3);
+    robot_wapoint_in_costmap_(1) = T_robot_waypoint(1,3);
+    std::cout << "\nActrual position is: " << robot_wapoint_in_costmap_(0) << "     " << robot_wapoint_in_costmap_(1) << std::endl;
     // ZYX顺序，即先绕x轴roll,再绕y轴pitch,最后绕z轴yaw, 0表示X轴,1表示Y轴,2表示Z轴
-    rotation_matrix3 = T_robot_waypoint.block(0,0,3,3);
-    Eigen::Vector3d euler_angles = rotation_matrix3.eulerAngles(2, 1, 0); 
+    Eigen::Matrix3d r_robot_waypoint;
+    r_robot_waypoint = T_robot_waypoint.block(0,0,3,3);
+    Eigen::Vector3d euler_angles = r_robot_waypoint.eulerAngles(2, 1, 0); 
     robot_wapoint_in_costmap_(0) = robot_wapoint_in_costmap_(0)/resolution_size_ + (map_height_/resolution_size_)/2;
     robot_wapoint_in_costmap_(1) = robot_wapoint_in_costmap_(1)/resolution_size_ + (map_width_/resolution_size_)/2;
-    std::cout << robot_wapoint_in_costmap_(0) << "      " << robot_wapoint_in_costmap_(1) << std::endl;
+    std::cout << "\nrobot in image map: " << robot_wapoint_in_costmap_(0) << "      " << robot_wapoint_in_costmap_(1)  << std::endl;
 }
 
 // 根据距离误差，后面还需要添加角度误差
 bool DWAPlanning::isArriveWayPoint(){
-    std::cout << "robot position: " << robot_pose_(0,3) << "  " << robot_pose_(1,3) << " " << robot_pose_id_ << "        " << 
-                 "robot destination: " << robot_waypoint_(0) << " " << robot_waypoint_(1) << "      " << waypoint_id_ << std::endl;
-    double distance_err = sqrt((robot_pose_(0,3) - robot_waypoint_(0))*(robot_pose_(0,3) - robot_waypoint_(0)) +
-    (robot_pose_(1,3) - robot_waypoint_(1))*(robot_pose_(1,3) - robot_waypoint_(1)));
-    std::cout << "distance_err is : " << distance_err << std::endl;
+    // std::cout << "robot position: " << robot_pose_(0,3) << "  " << robot_pose_(1,3) << " " << robot_pose_id_ << "        " << 
+    //              "robot destination: " << robot_waypoint_[0] << " " << robot_waypoint_[1] << "      " << waypoint_id_ << std::endl;
+    double distance_err = sqrt((robot_pose_(0,3) - robot_waypoint_[0])*(robot_pose_(0,3) - robot_waypoint_[0]) +
+    (robot_pose_(1,3) - robot_waypoint_[1])*(robot_pose_(1,3) - robot_waypoint_[1]));
+    // std::cout << "distance_err is : " << distance_err << std::endl;
     if(distance_err < distance_threshold_){      
         return true;
     }
@@ -133,11 +152,10 @@ bool DWAPlanning::isArriveDestination(){
 }
 
 bool DWAPlanning::dwa_control(const cv::Mat& config_map){
-    cv::Mat dwa_image_map = config_map.clone();
-    std::cout << robot_wapoint_in_costmap_(0) << " " <<  robot_wapoint_in_costmap_(1) << std::endl;
+    cv::Mat dwa_image_map = config_map.clone(); 
     int cross_line_size = 10;
-    cv::line(dwa_image_map, cvPoint(robot_wapoint_in_costmap_(0)-cross_line_size/2,robot_wapoint_in_costmap_(1)), cvPoint(robot_wapoint_in_costmap_(0)+cross_line_size/2, robot_wapoint_in_costmap_(1)), cv::Scalar(255,165,0), 1, 8, 0); 
-	cv::line(dwa_image_map, cvPoint(robot_wapoint_in_costmap_(0),robot_wapoint_in_costmap_(1)-cross_line_size/2), cvPoint(robot_wapoint_in_costmap_(0), robot_wapoint_in_costmap_(1)+cross_line_size/2), cv::Scalar(255,165,0), 1, 8, 0);
+    cv::line(dwa_image_map, cvPoint(robot_wapoint_in_costmap_(0)-cross_line_size/2,robot_wapoint_in_costmap_(1)), cvPoint(robot_wapoint_in_costmap_(0)+cross_line_size/2, robot_wapoint_in_costmap_(1)), cv::Scalar(0,0,255), 3, 8, 0); 
+	cv::line(dwa_image_map, cvPoint(robot_wapoint_in_costmap_(0),robot_wapoint_in_costmap_(1)-cross_line_size/2), cvPoint(robot_wapoint_in_costmap_(0), robot_wapoint_in_costmap_(1)+cross_line_size/2), cv::Scalar(0,0,255), 3, 8, 0);
 
     cv::namedWindow("dwa");
     cv::imshow("dwa",dwa_image_map);
@@ -148,11 +166,8 @@ bool DWAPlanning::dwa_control(const cv::Mat& config_map){
 
 void DWAPlanning::move(long int robot_pose_id, Eigen::Matrix4d robot_pose, const cv::Mat& config_map, double & go_v, double & turn_v){
     robot_pose_id_ = robot_pose_id;
-    robot_pose_ = robot_pose;
-    if(first_flag_ == true){
-        first_flag_ = false;
-        setWayPointInCostmap();
-    }
+    robot_pose_ = robot_pose; 
+    setWayPointInCostmap();
     if(isArriveDestination() == true){
         go_v = 0.0;
         turn_v = 0.0;
@@ -160,10 +175,9 @@ void DWAPlanning::move(long int robot_pose_id, Eigen::Matrix4d robot_pose, const
         return;
     }
     if(isArriveWayPoint() == true){
-        getWayPoint();
-        setWayPointInCostmap();
+        getWayPoint(); 
     }
-
+    
     if(!dwa_control(config_map))
         std::cerr << "DWA Plan is failed!!\n";
 

@@ -14,13 +14,15 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/image_encodings.h> 
-#include <tf/transform_broadcaster.h>
+#include <tf/transform_broadcaster.h> 
 #include <tf2_msgs/TFMessage.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h> 
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 #include "costmap_lrgbd_ros/lrgbd2xz.h"
 #include "costmap_lrgbd_ros/dwa_planning.h"
 
@@ -30,7 +32,10 @@ LRGBDCostMap lrgbd_tmap;
 DWAPlanning dwa_planer;
 Eigen::Matrix4d robot_pose;
 ros::Publisher speed_pub;
+ros::Publisher marker_pub; 
 long int robot_pose_id;
+std::string all_waypoint_file;
+bool pub_waypoint_marker_flag;
 
 template<typename T>
 T getOption(ros::NodeHandle& pnh,
@@ -74,17 +79,83 @@ void lidar_callback(const sensor_msgs::LaserScan::ConstPtr& scan){
     }
 }
 
+void waypoints_pub(std::string waypoints_file_path, int robot_start_x, int robot_start_y){
+    
+    visualization_msgs::MarkerArray waypoints_markerArray;
+    std::ifstream waypoint_file(waypoints_file_path);
+    ROS_INFO_STREAM("Display waypoints on rviz.");
+    std::string temp;
+    double waypoint_x, waypoint_y;
+    std::string temp_w;
+    int k = 0;
+    while(getline(waypoint_file,temp)) //按行读取字符串 
+	{  
+        std::stringstream input(temp);
+        input>>temp_w;
+        input>>temp_w; 
+        waypoint_x = atof(temp_w.c_str());
+        input>>temp_w; 
+        waypoint_y = atof(temp_w.c_str()); 
+        visualization_msgs::Marker waypoints_marker;
+        waypoints_marker.header.frame_id = "/map";
+        waypoints_marker.header.stamp = ros::Time::now();
+        waypoints_marker.action = visualization_msgs::Marker::ADD;
+        waypoints_marker.type = visualization_msgs::Marker::CUBE;
+        waypoints_marker.id = k;
+        waypoints_marker.ns = "basic_shapes";
+        waypoints_marker.scale.x = 0.1;
+        waypoints_marker.scale.y = 0.1;
+        waypoints_marker.scale.z = 0.1;
+        waypoints_marker.color.b = 1.0;
+        waypoints_marker.color.g = 0.0;
+        waypoints_marker.color.r = 0.0;
+        waypoints_marker.color.a = 1.0;
+        waypoints_marker.lifetime = ros::Duration(); 
+        geometry_msgs::Pose pose;
+        pose.position.x = waypoint_x;
+        pose.position.y = waypoint_y;
+        pose.position.z = 0;
+        pose.orientation.w = 1.0;
+        waypoints_marker.pose = pose;
+        std::ostringstream str;
+        str<<k;
+        waypoints_marker.text=str.str();
+        waypoints_markerArray.markers.push_back(waypoints_marker); 
+        while(marker_pub.getNumSubscribers() < 1){
+            if (!ros::ok()){
+    //             return 0; 
+            }
+            ROS_WARN_ONCE("Please create a subscriber to the marker");
+            sleep(1);
+        }
+        marker_pub.publish(waypoints_markerArray); 
+        k++;
+	} 
+	waypoint_file.close();   
+}
+
+
 void robot_pose_callback(const tf2_msgs::TFMessage::ConstPtr msg){
+    
     robot_pose_id++;
     robot_pose(0,3) = msg->transforms.at(0).transform.translation.x;
     robot_pose(1,3) = msg->transforms.at(0).transform.translation.y;
     robot_pose(2,3) = msg->transforms.at(0).transform.translation.z; 
-    Eigen::Quaterniond robot_Q(msg->transforms.at(0).transform.rotation.w,msg->transforms.at(0).transform.rotation.x,
-                            msg->transforms.at(0).transform.rotation.y,msg->transforms.at(0).transform.rotation.z);
+    Eigen::Quaterniond robot_Q(msg->transforms.at(0).transform.rotation.x, msg->transforms.at(0).transform.rotation.y,
+                            msg->transforms.at(0).transform.rotation.z, msg->transforms.at(0).transform.rotation.w);
     robot_pose.block(0,0,3,3) = robot_Q.toRotationMatrix();
+    static tf::TransformBroadcaster br;
+    tf::Transform transform;
+    transform.setOrigin( tf::Vector3(robot_pose(0,3), robot_pose(1,3), robot_pose(2,3)));
+    tf::Quaternion q(msg->transforms.at(0).transform.rotation.x, msg->transforms.at(0).transform.rotation.y,
+                    msg->transforms.at(0).transform.rotation.z,msg->transforms.at(0).transform.rotation.w);
+    transform.setRotation(q);
+    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/map", "/base_link"));
+    if(!pub_waypoint_marker_flag){
+        pub_waypoint_marker_flag = true;
+        waypoints_pub(all_waypoint_file, robot_pose(0,3), robot_pose(1,3));
+    }
 }
-
-
 
 int main(int argc, char **argv){
     ros::init(argc, argv, "lrgbd_costmap");
@@ -96,12 +167,13 @@ int main(int argc, char **argv){
     // ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
     ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info);
     std::string config_file;
-    std::string dwa_file;
+    std::string dwa_file; 
     robot_pose << 0.0, 0.0, 0.0, 0.0,
                   0.0, 0.0, 0.0, 0.0,
                   0.0, 0.0, 0.0, 0.0,
                   0.0, 0.0, 0.0, 1.0;
     robot_pose_id = 0;
+    pub_waypoint_marker_flag = false;
     if(argc >=2){
         config_file = argv[1]; 
     }
@@ -112,7 +184,8 @@ int main(int argc, char **argv){
     
     ROS_INFO_STREAM("Setting file path is: " << config_file);
     cv::FileStorage fsSettings(config_file, cv::FileStorage::READ);
-     
+    fsSettings["waypoints_file"] >> all_waypoint_file;
+    fsSettings["dwa_file"] >> dwa_file;
     double fx = fsSettings["fx"];
     double fy = fsSettings["fy"];
     double cx = fsSettings["cx"];
@@ -122,13 +195,13 @@ int main(int argc, char **argv){
     camera_K << fx, 0, cx, fy, cy, 0, 0, 0, 1; 
     int image_height = fsSettings["image_height"];
     int image_width = fsSettings["image_width"]; 
-    fsSettings["dwa_file"] >> dwa_file;
+    
     int depthScale = fsSettings["depthScale"];
     double resolution_size = fsSettings["resolution_size"];
     double map_width = fsSettings["map_width"];
     double map_height = fsSettings["map_height"];
     double robot_radius = fsSettings["robot_radius"];
-
+    
     // bool display_costmap = fsSettings["display_costmap"];
     bool display_costmap = false;
     
@@ -143,11 +216,13 @@ int main(int argc, char **argv){
     std::string lidar_topic = fsSettings["lidar_topic"];
     std::string robot_pose_topic = fsSettings["robot_pose_topic"];
     std::string camera_info = fsSettings["camera_info"];
- 
+    
     ros::Subscriber sub_img = nh.subscribe(depth_topic, 100, img_callback);
     ros::Subscriber sub_laser = nh.subscribe(lidar_topic, 100, lidar_callback);
     ros::Subscriber sub_robot_pose = nh.subscribe(robot_pose_topic, 100, robot_pose_callback);
     speed_pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
+    marker_pub = nh.advertise<visualization_msgs::MarkerArray>("/WayPoints",10);
+    
 
     ros::spin();
     ROS_INFO("shutting down!");

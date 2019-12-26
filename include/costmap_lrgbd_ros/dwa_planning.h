@@ -53,8 +53,8 @@ private:
     bool first_flag_;
     Eigen::Matrix3d camera_k_;
     std::string waypoints_file_path_;
-    std::queue<Eigen::Vector3d> waypoints_queue_;
-    Eigen::Vector3d robot_waypoint_; // 机器人路标点
+    std::queue<std::vector<double>> waypoints_queue_;
+    std::vector<double> robot_waypoint_; // 机器人路标点
     Eigen::Matrix4d robot_pose_; // 机器人在世界中的位姿
     Eigen::Vector3d robot_wapoint_in_costmap_; //机器人在代价地图中的位置
 

@@ -2,7 +2,7 @@
   
 <!--  strt lidar rgbd camera process-->
   <arg name="node_namespace" default="lrgbd_costmap_node" />
-  
+  <param name="use_sim_time" value="true"/>
 
   <!-- Set parameters -->
   <!-- <rosparam command="load" file="$(find costmap_lrgbd_ros)/config/settings.yaml" ns="$(arg node_namespace)" /> -->
@@ -10,6 +10,7 @@
   <node pkg="costmap_lrgbd_ros" type="lrgbd_costmap_node" name="$(arg node_namespace)" 
     args="/home/wpr/code/catkin_ws/src/costmap_lrgbd_ros/config/settings.yaml " 
     clear_params="true" output="screen" > 
+    
   </node>
 </launch>
 

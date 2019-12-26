@@ -52,3 +52,4 @@ robot_radius: 0.4
 display_costmap: true # default: true 
 
 dwa_file: /home/wpr/code/catkin_ws/src/costmap_lrgbd_ros/config/planning.yaml
+waypoints_file: /home/wpr/code/catkin_ws/src/costmap_lrgbd_ros/script/waypoints.txt
