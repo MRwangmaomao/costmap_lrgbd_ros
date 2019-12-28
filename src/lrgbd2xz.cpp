@@ -147,7 +147,7 @@ void LRGBDCostMap::inflationHighResolution(void){
                 break; 
             }
             
-            // 空闲区域
+            // 空闲区域 粉色
             config_map_.data[index] = 255;
             config_map_.data[index+1] = 192;
             config_map_.data[index+2] =203;
