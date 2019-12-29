@@ -8,7 +8,7 @@
   <!-- <rosparam command="load" file="$(find costmap_lrgbd_ros)/config/settings.yaml" ns="$(arg node_namespace)" /> -->
    
   <node pkg="costmap_lrgbd_ros" type="lrgbd_costmap_node" name="$(arg node_namespace)" 
-    args="/home/wpr/code/catkin_ws/src/costmap_lrgbd_ros/config/settings.yaml" clear_params="true" output="screen">
+    args="$(find lrgbd_costmap_node)/config/settings.yaml" clear_params="true" output="screen">
   </node>
 </launch>
 
