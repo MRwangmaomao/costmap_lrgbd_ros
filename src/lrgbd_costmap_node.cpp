@@ -202,9 +202,9 @@ int main(int argc, char **argv){
     double cy = fsSettings["cy"]; 
     
     Eigen::Matrix3d camera_K; 
-    camera_K << fx, 0, cx, fy, cy, 0, 0, 0, 1; 
+    camera_K << fx, 0, cx, fy, cy, 0, 0, 0, 1;
     int image_height = fsSettings["image_height"];
-    int image_width = fsSettings["image_width"]; 
+    int image_width = fsSettings["image_width"];
     
     int depthScale = fsSettings["depthScale"];
     double resolution_size = fsSettings["resolution_size"];
