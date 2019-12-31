@@ -1,14 +1,16 @@
 <!--
  * @Author: your name
  * @Date: 2019-12-23 03:29:32
- * @LastEditTime : 2019-12-31 12:03:31
+ * @LastEditTime : 2019-12-31 12:07:54
  * @LastEditors  : Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /catkin_ws/src/costmap_lrgbd_ros/README.md
  -->
 # 代价地图与智能导航程序
 
-[![Watch the video](https://raw.github.com/GabLeRoux/WebMole/master/ressources/WebMole_Youtube_Video.png)](https://www.bilibili.com/video/av80880347)
+视频效果：
+
+[![Watch the video](image/video_cover.png)](https://www.bilibili.com/video/av80880347)
 
 ## 1. 整个流程
 
