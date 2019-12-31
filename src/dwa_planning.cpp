@@ -241,7 +241,7 @@ bool DWAPlanning::dwa_control(const cv::Mat& config_map){
     cv::Mat dwa_image_map = config_map.clone(); 
     uint x = robot_wapoint_in_costmap_(0);
     uint y = robot_wapoint_in_costmap_(1); 
-    std::cout << "vec3b" << dwa_image_map.at<cv::Vec3b>(y,x) << std::endl;
+    // std::cout << "vec3b" << dwa_image_map.at<cv::Vec3b>(y,x) << std::endl;
     cv::Vec3b color_point = dwa_image_map.at<cv::Vec3b>(y,x);
     bool if_dwa_succ = true; 
     

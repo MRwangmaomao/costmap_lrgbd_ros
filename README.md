@@ -1,12 +1,14 @@
 <!--
  * @Author: your name
  * @Date: 2019-12-23 03:29:32
- * @LastEditTime : 2019-12-27 19:49:53
+ * @LastEditTime : 2019-12-31 12:03:31
  * @LastEditors  : Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /catkin_ws/src/costmap_lrgbd_ros/README.md
  -->
 # 代价地图与智能导航程序
+
+[![Watch the video](https://raw.github.com/GabLeRoux/WebMole/master/ressources/WebMole_Youtube_Video.png)](https://www.bilibili.com/video/av80880347)
 
 ## 1. 整个流程
 
@@ -25,16 +27,17 @@
 
 近期采用3D相机进行了路径规划的仿真和实测。
 
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20191227194412902.png?type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzE2NDgxMjEx,size_16,color_FFFFFF,t_70)
+![在这里插入图片描述](image/img.png)
+
 ##### 蓝色路标点表示机器人需要经过的waypoints
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20191227194423467.png?type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzE2NDgxMjEx,size_16,color_FFFFFF,t_70)
+![在这里插入图片描述](image/map.png)
 
 
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20191227194139455.png?type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzE2NDgxMjEx,size_16,color_FFFFFF,t_70)
+![在这里插入图片描述](image/tf_tree.png)
 ##### 机器人眼中的世界
 黄线为机器人深度相机视角，黑色为未知区域，绿色为障碍物，蓝色为空闲区域
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20191227194153417.png? type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzE2NDgxMjEx,size_16,color_FFFFFF,t_70)
+![在这里插入图片描述](image/obstacal.png)
 ##### 膨胀后的局部地图
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20191227194249104.png?type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzE2NDgxMjEx,size_16,color_FFFFFF,t_70)
+![在这里插入图片描述](image/flat_img.png)
 ##### 机器人逐渐靠近目标物 
-![在这里插入图片描述](https://img-blog.csdnimg.cn/20191227194609987.png?type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzE2NDgxMjEx,size_16,color_FFFFFF,t_70)
+![在这里插入图片描述](image/costmap.png)

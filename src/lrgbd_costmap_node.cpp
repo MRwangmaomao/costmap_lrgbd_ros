@@ -63,7 +63,7 @@ void img_callback(const sensor_msgs::ImageConstPtr &depth)
         if(dwa_planer.move(robot_pose_id, robot_pose, lrgbd_tmap.config_map_, go_v, turn_v)){
             pub_speed.linear.x = 0;
             pub_speed.angular.z = 0;
-            ROS_INFO_STREAM("go_v: " << go_v <<"    turn_v: " << turn_v);
+            // ROS_INFO_STREAM("go_v: " << go_v <<"    turn_v: " << turn_v);
             speed_pub.publish(pub_speed);
             pub_arrived.is_arrived = 1;
             isArrived_pub.publish(pub_arrived);
@@ -72,7 +72,7 @@ void img_callback(const sensor_msgs::ImageConstPtr &depth)
         }
         pub_speed.linear.x = go_v;
         pub_speed.angular.z = turn_v;
-        ROS_INFO_STREAM("go_v: " << go_v <<"    turn_v: " << turn_v);
+        // ROS_INFO_STREAM("go_v: " << go_v <<"    turn_v: " << turn_v);
         speed_pub.publish(pub_speed);
     }
     catch (cv_bridge::Exception& e)
